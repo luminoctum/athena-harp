@@ -10,7 +10,7 @@ git clone https://github.com/luminoctum/athena-harp harp-1.0
 
 2. cd into third party software folder
 ```
-cd athena-private-radiation/thirdparty
+cd harp-1.0/thirdparty
 ```
 
 3. untar RFM and DISORT softwares
