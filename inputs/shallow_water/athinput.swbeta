@@ -1,0 +1,58 @@
+<comment>
+problem   = One layer shallow water model
+reference = 
+configure = --prob=swbeta --eos=shallow_water -netcdf -mpi
+
+<job>
+problem_id = swbeta # problem ID: basename of output filenames
+
+<output1>
+file_type  = hst        # History data dump
+dt         = 864000.      # time increment between outputs
+
+<output2>
+file_type  = netcdf     # netcdf data dump
+variable   = prim       # variables to be output
+dt         = 864000.      # time increment between outputs
+
+<time>
+cfl_number = 0.3        # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim       = -1         # cycle limit
+#tlim       = 3.E6  # time limit
+tlim       = 25E8   # time limit
+#tlim       = -1.0      # time limit
+
+<mesh>
+nx1        = 256        # Number of zones in X1-direction (longitude)
+x1min      = 0.         # minimum value of X1
+x1max      = 12.E7      # maximum value of X1, 136 degree
+ix1_bc     = periodic   # inner-X1 boundary flag
+ox1_bc     = periodic   # inner-X1 boundary flag
+
+nx2        = 128        # Number of zones in X2-direction (latitude)
+x2min      = -2.5E7     # minimum value of X2
+x2max      = 2.5E7      # maximum value of X2, 40 degree
+ix2_bc     = reflecting # inner-X2 boundary flag
+ox2_bc     = reflecting # inner-X2 boundary flag
+
+nx3        = 1          # Number of zones in X3-direction (height)
+x3min      = 7.14E7     # minimum value of X3
+x3max      = 7.1402E7   # maximum value of X3
+ix3_bc     = periodic   # inner-X3 boundary flag
+ox3_bc     = periodic   # inner-X3 boundary flag
+
+<meshblock>
+nx1       = 64
+nx2       = 32
+nx3       = 1
+
+<problem>
+r_storm       = 2600.E3
+tau_interval  = 1.E5
+tau_storm     = 1.E5
+smax          = 0.01
+tau_mass      = 1.E6
+tau_ape       = 1.E8
+gheq          = 6.E4
+f0            = 2.46E-4
+beta          = 3.446E-12 # radius = 7.14E7

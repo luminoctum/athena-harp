@@ -1,0 +1,65 @@
+<comment>
+problem   = Jupiter cloud resolving model
+reference = 
+configure = --comp=32 --prob=jcrm --eos=heterogeneous -netcdf -mpi
+
+<job>
+problem_id = jcrm     # problem ID: basename of output filenames
+
+<output1>
+file_type  = hst      # History data dump
+dt         = 100.      # time increment between outputs
+
+<output2>
+file_type  = netcdf   # Binary data dump
+variable   = prim     # variables to be output
+dt         = 100.      # time increment between outputs
+
+<time>
+cfl_number = 0.3      # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim       = -1       # cycle limit
+tlim       = 10000.         # time limit
+
+<mesh>
+nx1        = 100        # Number of zones in X1-direction
+x1min      = 0.         # minimum value of X1
+x1max      = 600.E3     # maximum value of X1
+ix1_bc     = periodic   # inner-X1 boundary flag
+ox1_bc     = periodic   # outer-X1 boundary flag
+
+nx2        = 100        # Number of zones in X2-direction
+x2min      = 0.         # minimum value of X2
+x2max      = 600.E3     # maximum value of X2
+ix2_bc     = periodic   # inner-X2 boundary flag
+ox2_bc     = periodic   # outer-X2 boundary flag
+
+nx3        = 50         # Number of zones in X3-direction
+x3min      = -300.E3     # minimum value of X3
+x3max      = 0.         # maximum value of X3
+ix3_bc     = user       # inner-X3 boundary flag
+ox3_bc     = user       # outer-X3 boundary flag
+
+<meshblock>
+nx1        = 25
+nx2        = 25
+nx3        = 25
+
+<hydro>
+cv         = 18.19 20.78 20.78 20.78 20.78
+mu         = 2.2 18. 17. 18. 17.
+latent     = -51.0 -31.2
+grav_acc3  = -24.8
+
+<chemistry>
+gas         = H2 H2O NH3
+cloud       = H2O(s) NH3(s)
+folder      = ../dat/
+r1 = H2O -- H2O(s)     & 273.16 611.7 22.98 0.52 ! Ideal
+r2 = NH3 -- NH3(s)     & 195.4 6060. 20.64 1.43 ! Ideal
+
+<problem>
+xbot = 0.5E-2 350.E-6
+ptop = 0.1E5
+pref = 0.1E5
+tref = 73.
+crate = 1.E-3

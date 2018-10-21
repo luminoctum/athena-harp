@@ -1,0 +1,88 @@
+# Template for Athena++ Makefile
+# The 'configure.py' python script uses this template to create the actual Makefile
+
+# Files for conditional compilation
+
+COORDINATES_FILE = @COORDINATES_FILE@
+EOS_FILE = @EOS_FILE@
+PROBLEM_FILE = @PROBLEM_FILE@
+RECONSTRUCT_FILE = @RECONSTRUCT_FILE@
+RSOLVER_FILE = @RSOLVER_FILE@
+RSOLVER_DIR = @RSOLVER_DIR@
+HYDRO_INT_FILE = @HYDRO_INT_FILE@
+ROOT = .
+
+# General compiler specifications
+
+CXX := @COMPILER_COMMAND@
+CPPFLAGS := @PREPROCESSOR_FLAGS@
+CXXFLAGS := @COMPILER_FLAGS@
+LDFLAGS := @LINKER_FLAGS@
+LDLIBS := @LIBRARY_FLAGS@
+
+# Preliminary definitions
+#$(wildcard $(ROOT)/src/eos/*.cpp) \
+
+MAIN_FILES := $(wildcard $(ROOT)/src/main_*.cpp)
+MAIN := @MAIN_NAME@
+EXE_DIR := bin/
+EXECUTABLE := $(EXE_DIR)@EXE_NAME@
+SRC_FILES := $(ROOT)/src/$(MAIN).cpp \
+       $(filter-out $(MAIN_FILES), $(wildcard $(ROOT)/src/*.cpp)) \
+	     $(wildcard $(ROOT)/src/bvals/*.cpp) \
+	     $(wildcard $(ROOT)/src/coordinates/*.cpp) \
+       $(ROOT)/src/eos/adiabatic_hydro.cpp \
+       $(ROOT)/src/eos/isothermal_hydro.cpp \
+       $(ROOT)/src/eos/heterogeneous_hydro.cpp \
+       $(ROOT)/src/eos/shallow_water_hydro.cpp \
+	     $(wildcard $(ROOT)/src/field/*.cpp) \
+	     $(wildcard $(ROOT)/src/hydro/*.cpp) \
+	     $(wildcard $(ROOT)/src/hydro/srcterms/*.cpp) \
+	     $(ROOT)/src/hydro/rsolvers/$(RSOLVER_DIR)$(RSOLVER_FILE) \
+	     $(wildcard $(ROOT)/src/mesh/*.cpp) \
+	     $(wildcard $(ROOT)/src/outputs/*.cpp) \
+			 $(ROOT)/src/reconstruct/reconstruction.cpp \
+			 $(ROOT)/src/reconstruct/dc.cpp \
+			 $(ROOT)/src/reconstruct/$(RECONSTRUCT_FILE) \
+	     $(wildcard $(ROOT)/src/task_list/*.cpp) \
+	     $(wildcard $(ROOT)/src/utils/*.cpp) \
+	     $(ROOT)/src/pgen/$(PROBLEM_FILE) \
+	     $(ROOT)/src/pgen/default_pgen.cpp \
+			 $(wildcard $(ROOT)/src/particle/*.cpp) \
+       $(wildcard $(ROOT)/src/chemistry/*.cpp) \
+       $(wildcard $(ROOT)/src/radiation/*.cpp) \
+			 $(wildcard $(ROOT)/src/jupiter/*.cpp)
+OBJ_DIR := obj/
+OBJ_FILES := $(addprefix $(OBJ_DIR),$(notdir $(SRC_FILES:.cpp=.o)))
+SRC_DIR := $(dir $(SRC_FILES) $(PROB_FILES))
+VPATH := $(SRC_DIR)
+
+# Generally useful targets
+
+.PHONY : all dirs clean
+
+all : dirs $(EXECUTABLE)
+
+dirs : $(EXE_DIR) $(OBJ_DIR)
+
+$(EXE_DIR):
+	mkdir -p $(EXE_DIR)
+
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
+# Link objects into executable
+
+$(EXECUTABLE) : $(OBJ_FILES)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $(OBJ_FILES) $(LDFLAGS) $(LDLIBS)
+
+# Create objects from source files
+
+$(OBJ_DIR)%.o : %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+# Cleanup
+
+clean :
+	rm -rf $(OBJ_DIR)*
+	rm -rf $(EXECUTABLE)

@@ -1,0 +1,76 @@
+<comment>
+problem = Jupiter thermodynamic model
+reference = Li et al., 2017
+configure = --component=75 --prob=thermodynamics --eos=heterogeneous
+
+<job>
+problem_id = test
+
+<output1>
+file_type   = tab       # Tabular data dump
+variable    = prim # variables to be output
+data_format = %12.5e    # Optional data format string
+dt          = 0.01      # time increment between outputs
+x2_slice    = 0.0       # slice in x2
+x3_slice    = 0.0       # slice in x3
+
+<time>
+cfl_number  = 0.8       # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim        = 0        # cycle limit
+tlim        = 0.25      # time limit
+integrator  = vl2       # time integration algorithm
+
+<mesh>
+nx1         = 100       # Number of zones in X1-direction
+x1min       = 0.1E5     # minimum value of X1
+x1max       = 2000.E5   # maximum value of X1
+ix1_bc      = outflow   # Inner-X1 boundary condition flag
+ox1_bc      = outflow   # Outer-X1 boundary condition flag
+
+nx2         = 1         # Number of zones in X2-direction
+x2min       = -0.5      # minimum value of X2
+x2max       = 0.5       # maximum value of X2
+ix2_bc      = periodic  # Inner-X2 boundary condition flag
+ox2_bc      = periodic  # Outer-X2 boundary condition flag
+
+nx3         = 1         # Number of zones in X3-direction
+x3min       = -0.5      # minimum value of X3
+x3max       = 0.5       # maximum value of X3
+ix3_bc      = periodic  # Inner-X3 boundary condition flag
+ox3_bc      = periodic  # Outer-X3 boundary condition flag
+
+<hydro>
+gamma       = 1.4  1.4 1.4 1.4 1.4 1.4 1.4 1.4 1.4 1.4 1.4 1.4
+# heat capacity [J/(g K)]
+cv          = 14.6 5.2 2.2 1.1 2.1 1.8 1.0 2.1 2.1 1.8 1.8 3.1
+# latent heat [J/g]
+latent      = -1800. -1382. -2833. -2500. -2547.
+
+<chemistry>
+gas         = H2 He CH4 PH3 NH3 H2O H2S
+cloud       = NH3(s) NH3(l) H2O(s) H2O(l) NH4SH(s)
+folder      = ../dat/
+
+H2.solar    = 1.0
+He.solar    = 0.1941
+CH4.solar   = 6.04E-4
+PH3.solar   = 5.76E-7
+NH3.solar   = 1.52E-4
+H2O.solar   = 1.10E-3
+H2S.solar   = 2.96E-5
+
+H2.enrich   = 1.0
+He.enrich   = 0.808
+CH4.enrich  = 3.92
+PH3.enrich  = 3.75
+NH3.enrich  = 2.7
+H2O.enrich  = 4.
+H2S.enrich  = 3.01
+
+r1 = H2O -- H2O(l)     & 273.16 611.7 24.88 5.06 ! Ideal
+r2 = H2O -- H2O(s)     & 273.16 611.7 22.98 0.52 ! Ideal
+r3 = H2O(l) -- H2O(s)  & 273.16 611.7
+r4 = NH3 + H2S -- NH4SH(s) ! Lewis
+r5 = NH3 -- NH3(l)     & 195.4 6060. 20.08 5.62 ! Ideal
+r6 = NH3 -- NH3(s)     & 195.4 6060. 20.64 1.43 ! Ideal
+r7 = NH3(l) -- NH3(s)  & 195.4 6060.

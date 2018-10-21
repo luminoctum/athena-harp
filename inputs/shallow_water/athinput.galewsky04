@@ -1,0 +1,55 @@
+<comment>
+problem   = One layer shallow water model
+reference = 
+configure = --prob=galewsky04 --eos=shallow_water --coord=spherical_latlon --order=weno3 -netcdf -mpi
+
+<job>
+problem_id = galewsky04 # problem ID: basename of output filenames
+
+<output1>
+file_type  = hst       # History data dump
+dt         = 1200.      # time increment between outputs
+
+<output2>
+file_type  = netcdf    # netcdf data dump
+variable   = prim      # variables to be output
+dt         = 1200.       # time increment between outputs
+
+<time>
+cfl_number = 0.4       # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim       = -1        # cycle limit
+tlim       = 518400.0      # time limit
+#tlim       = -1.0      # time limit
+
+<mesh>
+nx1        = 512  # Number of zones in X1-direction (longitude)
+x1min      = 0.0      # minimum value of X1
+x1max      = 6.283185307179586      # maximum value of X1
+ix1_bc     = periodic  # inner-X1 boundary flag
+ox1_bc     = periodic  # inner-X1 boundary flag
+
+nx2        = 256  # Number of zones in X2-direction (latitude)
+x2min      = 0.     # minimum value of X2
+x2max      = 1.570796327     # maximum value of X2
+ix2_bc     = reflecting # inner-X2 boundary flag
+ox2_bc     = reflecting # inner-X2 boundary flag
+ 
+nx3        = 1          # Number of zones in X3-direction (height)
+x3min      = 6.371E6    # minimum value of X3
+x3max      = 6.372E6    # maximum value of X3
+ix3_bc     = periodic   # inner-X3 boundary flag
+ox3_bc     = periodic   # inner-X3 boundary flag
+
+<meshblock>
+nx1       = 128
+nx2       = 64
+nx3       = 1
+
+<hydro>
+coriolis_accz = 7.292E-5
+
+<problem>
+umax  = 80.
+phim  = 98061.6
+theta0 = 1.047197551
+theta1 = 1.396263402

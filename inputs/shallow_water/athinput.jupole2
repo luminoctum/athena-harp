@@ -1,0 +1,66 @@
+<comment>
+problem   = One layer shallow water model
+reference = 
+configure = --prob=jupiter_pole2 --eos=shallow_water --coord=spherical_latlon --exe=jupole2 -netcdf -mpi
+
+<job>
+problem_id = jupole2 # problem ID: basename of output filenames
+
+<output1>
+file_type  = hst        # History data dump
+dt         = 1.E5     # time increment between outputs
+
+<output2>
+file_type  = netcdf     # netcdf data dump
+variable   = prim       # variables to be output
+dt         = 21600      # time increment between outputs
+
+<output3>
+file_type  = pat
+dt         = 21600
+
+#<output4>
+#file_type  = rst        # restart dump
+#dt         = 20.E5
+
+<time>
+cfl_number = 0.4        # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim       = -1         # cycle limit
+tlim       = 1.E5     # time limit
+#tlim       = -1.0      # time limit
+
+<mesh>
+nx1        = 256  # Number of zones in X1-direction (longitude)
+x1min      = -0.5236    # minimum value of X1
+x1max      = 0.5236     # maximum value of X1, 120 degree
+ix1_bc     = periodic       # inner-X1 boundary flag
+ox1_bc     = periodic       # inner-X1 boundary flag
+
+nx2        = 256  # Number of zones in X2-direction (latitude)
+x2min      = -0.5236    # minimum value of X2
+x2max      = 0.5236     # maximum value of X2, 70 degree
+ix2_bc     = periodic       # inner-X2 boundary flag
+ox2_bc     = periodic       # inner-X2 boundary flag
+
+nx3        = 1          # Number of zones in X3-direction (height)
+x3min      = 7.14E7     # minimum value of X3
+x3max      = 7.146E7   # maximum value of X3
+ix3_bc     = periodic   # inner-X3 boundary flag
+ox3_bc     = periodic   # inner-X3 boundary flag
+
+#<meshblock>
+#nx1       = 128
+#nx2       = 128
+#nx3       = 1
+
+<problem>
+vnum    = 5
+vrad    = 2500.E3
+vlat    = 80.
+vgh     = -1.E5
+jlat1   = 70.
+jlat2   = 80.
+umax    = -160.
+gh0     = 2.E5
+ntracers = 2500
+omegax  = 1.74E-4

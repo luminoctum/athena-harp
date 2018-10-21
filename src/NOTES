@@ -1,0 +1,354 @@
+Athena Code Review
+==================
+- 2/1/2017
+Reviewing mesh/mesh.hpp.
+This is the most important part of the Athena code because everything starts from the
+mesh. Top level class
+
+NeighborBlock: identifies a neighboring block
+ox1, ox2, ox3: flags {-1, 0, 1}, to identify which boundary
+fid, face boundary id
+eid, edge boundary id
+// what is fi1, fi2 ?
+
+MeshBlock:
+coordinates, boundary, amr, neighbor
+is starts from NGHOST
+
+Mesh:
+Mesh is like the control of all problem
+includes global fields like start_time, tlim, cfl_number, etc
+
+
+- 2/3/2017
+processor list fields like:
+nslist: a rank-sized list of the start id in the block tree for this rank
+nblist: number of meshblocks processed by this rank
+costlist: a nbtotal-sized list of the cost of each block
+ranklist: a nbtotal-sized list of each meshblock processed by which processor
+
+The ids are processed in LoadBalance
+
+function pointers:
+MeshGenFunc, SrcTermFunc, BValFunc, AMRFlagFunc, TimeStepFunc
+
+these private members can be modifed by Enroll Function
+
+DefaultMeshGrneratorX1: given logical location [0,1], the actual limits [x1min,
+x1max], ratio between two adjacent grid, return the actual position of this
+
+cfl number less than 1 in 1-D, 0.5 in 2-D, 0.33 in 3-D
+grid ratio should be from 0.9 to 1.1
+
+nrbx1, nrbx2, nrbx3, number of meshblocks in each direction
+nbmax = max(nrbx1, nrbx2, nrbx3)
+
+if no meshblock field are assigned, meshblock is set to one
+
+root_level is log(nbmax, 2)
+tree.CreateRootGrid function(nrbx1, nrbx2, nrbx3, root_level)
+
+flags to determine whether it is smr/amr, multilevel, adaptive
+
+maximum number of grids in a given level is nrbx? * (1<<level)
+
+AddMeshBlock adds a meshblock to the meshtree
+
+tree has several methods:
+1) CountMeshBlock, 2) LogicalLocation, 3) GetMeshBlockList
+
+nref,nderef, rdisp, ddisp, bnref, bndref, brdisp, rddisp -> amr variables
+
+gid, lid in MeshBlock are both input variables
+
+- 4/9/2017
+ox1, ox2, ox3 : {-1, 0, 1}, indicate the position of the NeighborBlock.
+type : {NEIGHBOR_FACE, NEIGHBOR_EDGE}
+
+   E_________H              ^ x3
+   /:       /|              |
+  / :      / |              |
+A/__:_____/D |              |
+ | F:.....|../G             /----------> x2
+ | /      | /              / 
+B|/_______|/C         x1 |/_
+
+
+
+ox1   ox2   ox3   Face/Edge   fid/eid
+-1    0     0     EFGH        INNER_X1
+1     0     0     ABCE        OUTER_X1
+0     -1    0     ABFE        INNER_X2
+0     1     0     DCGH        OUTER_X2
+0     0     -1    BCGF        INNER_X3
+0     0     1     ADHE        OUTER_X3
+-1    -1    0     EF          0
+1     -1    0     AB          1
+-1    1     0     GH          2 
+1     1     0     CD          3
+-1    0     -1    FG          4
+1     0     -1    BC          5
+-1    0     1     EH          6  
+1     0     1     AD          7
+0     -1    -1    BF          8
+0     1     -1    CG          9
+0     -1    1     AE          10
+0     1     1     DH          11
+
+LogicalLocation: lx1, lx2, lx3, level
+Sequential index of the current meshblock counted from 0 assuming the whole mesh is
+refined to the current level.
+meshblock_tree.cpp:
+loc.lx1 = (parent->loc.lx1<<1) + ox;
+loc.lx2 = (parent->loc.lx2<<1) + oy;
+loc.lx3 = (parent->loc.lx3<<1) + oz;
+
+MeshBlockTree::GreateRootGrid, gid is -1, lx1,lx2,lx3,level are correctly set
+Start from level 0 and check whether its leaf is still in the domian. If so, create this
+leaf node and go down one level. Otherwise, return
+
+MeshBlockTree::AddMeshBlock (add a refined meshblock)
+suppose the logcial location of one meshblock is: 101101
+You can trace its location by reading from left to right:
+right -> left -> right -> right -> left -> right. The algorithm is:
+int sh = rloc.level - loc.level -1;
+mx = (int)((rloc.lx1 >> sh) & 1L);
+my = (int)((rloc.lx2 >> sh) & 1L);
+mz = (int)((rloc.lx3 >> sh) & 1L);
+pleaf[mz][my][mx]->AddMshBlock(...);
+level and check leaf recursively. Otherwise, 
+
+NeighborBlock neighbor[56]
+6 faces, each can have 4 neighbors maximum (refined)
+12 edges, each can have 2 neighbors maximum
+8 corners, each has 1 neighbor maximum
+6*4+12*2+8 = 56
+
+fi1, fi2 : {0, 1}, each face can contact two other faces maximum
+If there is only one level, fi1 & fi2 are always 1.
+If there is SMR/AMR, fi1 & fi2 can be 2
+1,2 are two dimensions of this contacting face
+
+what is bufid, targetid? Should be related to MPI communication
+
+- 4/10/2017
+BoundaryValues::LoadHydroBoundaryBufferSameLevel -> BufferUtility::Pack4DData
+using boundary indicator ox1,ox2,ox3 to determine the index range that should be copied
+to the buffer. Then 4D data is "packed" into 1D array start from buf
+
+Real *hydro_send_[56], is an array of addresses, each address points to the buffer for
+the neighbor
+nb.bufid is the index in this hydro_send_ array
+
+everything about bufid is in bvals/bvals_buffer.cpp
+
+fi1, fi2 stands for "fine in direction 1 and fine in direction 2"
+
+- 4/11/2017
+from bvals_buffer.cpp:
+1d domain only has face,
+2d domain has face and edge
+3d domain has face, edge and corner
+face is where one of ox1,ox2,ox3 is -1 or 1
+edge is where two of ox1,ox2,ox3 are -1 or 1
+corner is where three of ox1,ox2,ox3 are -1 or 1
+NeighborIndex BoundaryValues::ni[56], is an array of all possible neighbors (index)
+int BoundaryValues::bufid[56], stores the unique id (an integer) of a neighbor
+FindBufferID, returns the index of a bufid in the BoundaryValues::bufid array such that
+the bufid matches the neighbor index
+three concepts:
+1) neighbor_index, 5 number describing the relation of this neighbor
+2) bufid, a unique integer that is created from neighbor_index
+3) neighbor_id, the location of the bufid in the bufid array
+
+There are two bufids. They are:
+1) BoundaryValues::bufid[56]
+2) NeighborBlock::bufid
+
+The second one is from 0-55, it is the index of a 56-length send_, receive_ array
+
+ox1,ox2,ox3 in NeighborBlock is the position seen from the original block
+e.g. ox1=1 if the neighbor block is to the right of the current block
+
+- 4/12/2017
+Because any MeshBlock has 56 neighbors blocks in maximum, a series of buffer arrays are
+allocated to hold the data in the ghost cells. They are:
+Real* BoundaryValues::hydro_send_[56]
+Real* BoundaryValues::hydro_recv_[56]
+Real* BoundaryValues::field_send_[56]
+Real* BoundaryValues::field_recv_[56]
+Real* BoundaryValues::flcor_send_[6]
+Real* BoundaryValues::flcor_recv_[6]
+Real* BoundaryValues::emfcor_send_[48]
+Real* BoundaryValues::emfcor_recv_[48]
+
+flcor_send_ and flcor_recv are of length 6 because flux corrections are applied to face
+only.
+
+Each neighbor block is thus assigned an integer number identifies its position in the
+buffer array. This interger number is NeighborBlock::bufid.
+
+The geometric relation of a neighbor block to its host is call BufferID which is created
+from 5 integer numbers: CreateBufferID(ox1,ox2,ox3,fi1,fi2)
+
+The geometric information of all 56 neighbor blocks is stored in:
+BoundaryValues::bufid[56]
+
+1) mesh/meshblock.cpp: MeshBlock::SearchAndSetNeighbors
+loop over the neighbor blocks. The loop sequence must be the same as the sequence in
+BoundaryValues::bufid
+
+The position of the neighbor block is stored in NeighborBlock::bufid
+The position of the host block in the view point of the neighbor block is stored in
+NeighborBlock::targetid
+
+2) task_list/time_integrator.cpp: TimeIntegratorTaskList::HydroSend
+A wraper of all boundary related function
+
+3) BoundaryValues::SendHydroBoundaryBuffers
+LoadHydroBoundaryBufferSameLevel: pack the boundary of 4D array into a 1D array, which
+is hydro_send_[nb.bufid]
+MPI persistent communication: MPI_START
+
+4) BoundaryValues::ReceiveHydroBoundarBuffers
+MPI persistent communication: MPI_TEST
+restore 4D array from packed 1D array: SetHydroBoundarySameLevel
+
+The key is how to correctly set the MPI TAG
+
+5) bvals/bvals.cpp
+tag=CreateBvalsMPITag(nb.lid, TAG_HYDRO, nb.targetid);
+
+A MPI tag is created in the view point of the target block
+e.g. two adjacent blocks
+
+  3       3
+0 A 2,  0 B 2
+  1       1
+
+B is a neighbor block of A. B's bufid is 2 and B's targetid is 0
+The MPI tag for MPI_SEND is "BH0", the buffer position is hydro_send_[2]
+
+In the loop of B, A is a neighbor block of B. A's bufid is 0 and A's targetid is 2
+The MPI tag for MPI_RECV is "BH0", the buffer position is hydro_recv_[0]
+
+The communication is complete.
+
+if two blocks are on the same processor
+copy A.hydro_send_[nb.bufid] to B.hydro_recv_[nb.targetid]
+     A.hydro_send_[2] to B.hydro_recv_[0]
+
+what is lid and gid?
+
+- 4/13/2017
+gid is the global id of a MeshBlock in an array, it was initially set in
+MeshBlockTree::GetMeshBlockList
+It might be reset in LoadBalance
+
+lid is the local id of a MeshBlock within a processor.
+ranklist[nbtotal], MeshBlocks are ordered in sequential processor by processor
+The rank of a MeshBlock is ranklist[gid].
+
+global id is continues within a rank.
+The start is is stored in nslist[rank].
+Therefore, the local id is gid - nslist[ranklist[gid]]
+
+- 4/22/2017
+steps to support particles
+1) need a function to update particle properties
+2) need a function to move particles to another MeshGrid if they are moved out of
+   the current MeshGrid
+3) In particle.hpp, particle.cpp, add function ParticleGroup::PropertyUpdate
+4) In task_list.hpp, time_integrator.cpp add schedule functions
+  a. ParticlePropertyUpdate, UPDATE_PT
+  b. ParticleSend, SEND_PT
+  c. ParticleReceive, RECEIVE_PT
+5) UPDATE_PT runs after RECV_HYD,
+   SEND_PT runs after UPDATE_PT,
+   RECEIVE_PT runs after UPDATE_PT
+6) TimeIntegratorTaskList::ParticlePropertyUpdate loops over all ParticleGroup 
+   and calls ParticleGroup::PropertyUpdate
+7) ParticleGroup::PropertyUpdate interpolate particle velocity from MeshGrid and apply
+   user particle property update function particle_fn_, which is copied from mesh->particle_fn_
+8) Declear particle_fn_ in mesh.hpp and enrollment function EnrollUserParticleUpdateFunction
+9) Declear function type ParticleUpdateFunc_t in athena.hpp
+10) TimeIntegratorTaskList::ParticleSend loops over all ParticleGroup
+   and calls BoundaryValue::SendParticleBuffers
+11) TimeIntegratorTaskList::ParticleReceive loops over all ParticleGroup
+   and calls BoundaryValue::ReceiveParticleBuffers
+12) bvals.hpp declares particle_send_, particle_receive_ and particle_flag_
+13) bvals.cpp implements SendParticleBuffers, ReceiveParticleBuffers
+
+- 4/24/2017
+The boundary buffer is set in hydro_send_[nb.bufid], so what is nb.bufid?
+Or, if I know the logical position of the neighboring block (ox1,ox2,ox3,fi1,fi2), how
+to determine nb.bufid ? // nb.bufid is set by MeshBlock::SearchAndSetNeighbors
+bufid is [0, maxneighbor_) continuous
+from BoundaryValues::BoundaryValues
+for (int n = 0; n < pmb->pmy_mesh->maxneighbor_; ++n) {
+  ...
+  hydro_send_[n] = new Real[size];
+  hydro_send_[n] = new Real[size];
+  ...
+}
+use FindBufferID to find out bufid
+
+- 4/25/2017
+things to implement:
+1) periodic boundary conditions
+2) MPI_type commit
+3) MPI_Isend, MPI_Irecv, MPI_Iprob arguments
+
+- 4/26/2017
+PHY_BVAL is scheduled after CON2PRIM is complete
+PHY_BVAL calls TimeIntegratorTaskList::PhysicalBoundary
+PhysicalBoundary calls pbval->ApplyPhysicalBoundaries()
+ApplyPhysicalBoundary check whether boundary is NULL and calls BoundaryFunction_
+BoundaryFunction_ is NULL for periodic, and is set to pmy_mesh->BoundaryFunctions_ if
+USER_BNDRY is set
+boundary type is stored in pmb->block_bcs[INNER_X1]
+particle periodic boundary condition is set in BoundaryValues::ReceiveParticleBuffers
+particle  reflective boundary condition in set in ParticleGroup::PropertyUpdate
+
+- 4/27/2017
+add MPI request in bvals/bvals.hpp/cpp
+
+- 4/30/2017
+test particle without support for MPI
+
+- 5/6/2017
+implement MPI for particle
+1) need to send two arrays, one is the number count for each particle group, the other
+is the actual data
+  athena.hpp -> add TAG_PARTICLE, TAG_PARTICLE_NUM
+2) create MPI_type
+  particle.hpp/cpp -> MPI_PARTICLE
+3) particle_num_send_ and particle_num_recv_ are fixed sized arrays once ParticleGroup
+is initialized
+  bvals.hpp -> int *particle_num_send_[56], *particle_num_recv_[56]
+Send particle has two steps. One is to send the number of particles. status is
+BNDRY_INIT. The other is the real data. status is BNDRY_WAITING
+4) using MPI_Send_init for particle_num_send_, MPI_Isend for particle_send
+
+- 5/31/2017
+NHYDRO is the number of conserved hydrodynamic variables.
+It is used to allocate arrays in Hydro::u,u1, Hydro::w,w1
+If heterogeneous eos is used, the first primitive variable is T. The second through the
+NCOMP - 1 variables are the mixing ratio. The following three are velocities. The last
+one is P. It makes sense because T is usually an indication of density.
+NWAVE is the dimension of primitive variables.
+if hydro only, NWAVE = NHYDRO
+
+- 6/2/2017
+Change eos, eos is seperated into a lot of different inhereted classes
+
+- 9/1/2017
+How to add a new type of equation of state
+1) add option in configure.py
+2) add EQUATION_OF_STATE in mesh/meshblock.cpp
+3) add coordinate source term in coordinates/*.cpp
+4) add forcing term in hydro/srcterms/*.cpp
+
+How to add a derived equation of state
+1) deallocate the previous peos
+2) allocate a new one

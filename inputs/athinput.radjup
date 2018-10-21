@@ -1,0 +1,107 @@
+<comment>
+problem = Jupiter radiative-convective model
+reference = Li et al., 2017
+configure = --comp=a5 --prob=radconv --eos=heterogeneous --main=radiation -netcdf -disort -omp
+
+<job>
+problem_id  = jup
+
+<output1>
+file_type   = tab       # Tabular data dump
+variable    = prim      # variables to be output
+data_format = %12.5e    # Optional data format string
+dt          = 0.01      # time increment between outputs
+x2_slice    = 0.0       # slice in x2
+x3_slice    = 0.0       # slice in x3
+
+<time>
+cfl_number  = 0.8       # The Courant, Friedrichs, & Lewy (CFL) Number
+nlim        = 1         # cycle limit
+tlim        = 0.25      # time limit
+integrator  = vl2       # time integration algorithm
+
+<mesh>
+nx1         = 111       # Number of zones in X1-direction
+x1min       = 0.1E5     # minimum value of X1
+x1max       = 2000.E5   # maximum value of X1
+ix1_bc      = outflow   # Inner-X1 boundary condition flag
+ox1_bc      = outflow   # Outer-X1 boundary condition flag
+
+nx2         = 1         # Number of zones in X2-direction
+x2min       = -0.5      # minimum value of X2
+x2max       = 0.5       # maximum value of X2
+ix2_bc      = periodic  # Inner-X2 boundary condition flag
+ox2_bc      = periodic  # Outer-X2 boundary condition flag
+
+nx3         = 1         # Number of zones in X3-direction
+x3min       = -0.5      # minimum value of X3
+x3max       = 0.5       # maximum value of X3
+ix3_bc      = periodic  # Inner-X3 boundary condition flag
+ox3_bc      = periodic  # Outer-X3 boundary condition flag
+
+<hydro>
+mu          = 2.00 4.00 16.0 34.0 17.0 18.0 34.0 26.0 28.0 30.0  17.0 17.0 18.0 18.0 51.0
+cv          = 20.8 12.5 26.6 29.1 27.4 24.1 25.8 26.0 26.0 26.0  27.4 27.4 24.1 24.1 53.2
+latent      = -31.2 -23.5 -51.0 -45.0 -93.1
+
+<chemistry>
+gas         = H2 He CH4 PH3 NH3 H2O H2S C2H2 C2H4 C2H6
+cloud       = NH3(s) NH3(l) H2O(s) H2O(l) NH4SH(s)
+folder      = ../dat/
+
+H2.solar    = 1.0
+He.solar    = 0.1941
+CH4.solar   = 6.04E-4
+PH3.solar   = 5.76E-7
+NH3.solar   = 1.52E-4
+H2O.solar   = 1.10E-3
+H2S.solar   = 2.96E-5
+
+H2.enrich   = 1.0
+He.enrich   = 0.808
+CH4.enrich  = 3.92
+PH3.enrich  = 3.75
+NH3.enrich  = 2.7
+H2O.enrich  = 4.
+H2S.enrich  = 3.01
+
+r1 = H2O -- H2O(l)     & 273.16 611.7 24.88 5.06 ! Ideal
+r2 = H2O -- H2O(s)     & 273.16 611.7 22.98 0.52 ! Ideal
+r3 = H2O(l) -- H2O(s)  & 273.16 611.7
+r4 = NH3 + H2S -- NH4SH(s) ! Lewis
+r5 = NH3 -- NH3(l)     & 195.4 6060. 20.08 5.62 ! Ideal
+r6 = NH3 -- NH3(s)     & 195.4 6060. 20.64 1.43 ! Ideal
+r7 = NH3(l) -- NH3(s)  & 195.4 6060.
+
+<radiation>
+#b1 = kcoeff.1500-1600-0.1.nc
+b1 = kcoeff.10-600-0.01.nc
+b2 = kcoeff.600-960-0.01.nc
+b3 = kcoeff.960-2100-0.01.nc
+fcia1       = ../dat/H2-H2-nm.xiz.txt
+fcia2       = ../dat/H2-He-nm.xiz.txt
+atm_file    = jup_lat30_modelc.txt
+solar_file  = ../dat/solar.txt
+distance    = 5.03
+
+# Disort configurations
+nlevel      = 111
+nstr        = 8
+nmom        = 8
+nphase      = 8
+btemp       = 500.
+ttemp       = 3.
+fbeam       = 0.
+#umu0       = 0.60951
+umu0        = 1.
+#phi0       = 127
+phi0        = 0.
+fisot       = 0.
+albedo      = 0.
+temis       = 1.
+planck      = 1
+onlyfl      = 1
+quiet       = 1
+
+<problem>
+grav        = 24.79
